@@ -41,7 +41,7 @@
             // 
             this.panel1.Location = new System.Drawing.Point(235, 92);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(827, 539);
+            this.panel1.Size = new System.Drawing.Size(665, 539);
             this.panel1.TabIndex = 0;
             // 
             // button1

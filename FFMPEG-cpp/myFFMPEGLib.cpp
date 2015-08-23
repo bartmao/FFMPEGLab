@@ -108,7 +108,7 @@ extern "C"
 		SDL_Rect rect;
 		SDL_Thread *video_tid;
 		SDL_Event event;
-		decodeInterval = 10;
+		decodeInterval = 50;
 		char filepath[] = "e:\\2.mp4";
 		av_register_all();
 		avformat_network_init();
@@ -186,35 +186,70 @@ extern "C"
 		img_convert_ctx1 = sws_getContext(pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height, PIX_FMT_RGB24, SWS_BICUBIC, NULL, NULL, NULL);
 		video_tid = SDL_CreateThread(sfp_refresh_thread, NULL);
 
+		AVRational time_base = pFormatCtx->streams[videoindex]->time_base;
+		int64_t dur = pFormatCtx->duration;
+		printf("video total time:%lld", dur*time_base.num / time_base.den);
+
 		int ii = 0;
-	
 		char title[5];
 		int64_t curPts = 0;
 		int jumpflag = 0;
+		int64_t curTime = 0;
+
 		for (;;)
 		{
 			SDL_WaitEvent(&event);
-			if (event.type == SFM_REFRESH_EVENT && !pause){
+
+			if (event.type == SDL_KEYDOWN)
+			{
+				char* k = SDL_GetKeyName(event.key.keysym.sym);
+				if (k[0] == 'w')
+				{
+					jumpflag = 1;
+				}
+				//printf("code:%s\n", k);
+			}
+			else if (event.type == SFM_REFRESH_EVENT && !pause){
 				//------------------------------
 				if (av_read_frame(pFormatCtx, packet) >= 0){
+					AVRational r = { 1, AV_TIME_BASE };
+					int64_t real_world_pts;
+
+					if (packet->pts != AV_NOPTS_VALUE)
+						real_world_pts = av_rescale_q(packet->pts, pFormatCtx->streams[videoindex]->time_base, r);
+					else
+						real_world_pts = 0;
+
 					if (packet->stream_index == videoindex){
 						curPts = packet->pts;
-						if (curPts > 5000 && !jumpflag)
+						curTime = curPts * time_base.num / (int64_t)time_base.den;
+						printf("CurTime:%d\n", curTime);
+						if (jumpflag)
 						{
-							int64_t kk = av_rescale_q(curPts, pFormatCtx->streams[videoindex]->time_base, AV_TIME_BASE_Q);
-							//av_rescale_q()
-							av_seek_frame(pFormatCtx, videoindex,
-								30060, AVSEEK_FLAG_BACKWARD);
-							jumpflag = 1;
+							/*AVRational r = { 1, AV_TIME_BASE };
+							curPts += 60;
+							int64_t kk = av_rescale_q(curPts, r, pFormatCtx->streams[videoindex]->time_base);
+							printf("fast-forward, curPts:%lld , dstPts: %lld \n", curPts, curPts + 60);*/
+
+							int64_t seek_target = curTime + 300;
+							int64_t DesiredFrameNumber = av_rescale(seek_target, pFormatCtx->streams[videoindex]->time_base.den, pFormatCtx->streams[videoindex]->time_base.num);
+							//DesiredFrameNumber /= 1000;
+
+							if (av_seek_frame(pFormatCtx, videoindex,
+								DesiredFrameNumber, AVSEEK_FLAG_BACKWARD));
+							avcodec_flush_buffers(pFormatCtx->streams[videoindex]->codec);
+							jumpflag = 0;
+							continue;
 						}
-						printf("pts:%d\n", packet->pts);
+						//printf("Packet------- pts:%lld  dts:%lld\n", packet->pts, packet->dts);
 						ret = avcodec_decode_video2(pCodecCtx, pFrame, &got_picture, packet);
-						printf("keyframe:%d\n", pFrame->key_frame);
 						if (ret < 0){
 							printf("Decode Error.\n");
 							return -1;
 						}
 						if (got_picture){
+							ii++;
+							
 							SDL_LockYUVOverlay(bmp);
 							pFrameYUV->data[0] = bmp->pixels[0];
 							pFrameYUV->data[1] = bmp->pixels[2];
@@ -223,7 +258,7 @@ extern "C"
 							pFrameYUV->linesize[1] = bmp->pitches[2];
 							pFrameYUV->linesize[2] = bmp->pitches[1];
 							sws_scale(img_convert_ctx, (const uint8_t* const*)pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pFrameYUV->data, pFrameYUV->linesize);
-							if (ii++ % 50 == 0)
+							if (ii % 50 == 0)
 							{
 								//int rst = sws_scale(img_convert_ctx1, (const uint8_t* const*)pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);
 								//SaveFrame(pFrameRGB, pCodecCtx->width, pCodecCtx->height, ii, 24);
