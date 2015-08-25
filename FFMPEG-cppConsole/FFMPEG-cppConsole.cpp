@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "sdl/sdl.h"
 #include "myFFMPEGLib.cpp"
+#include "main1.cpp"
 
 int _tmain(int argc, _TCHAR* argv[])
 {
@@ -14,7 +15,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	SDL_Init(SDL_INIT_EVERYTHING); // 初始化SDL所有的子系统  
 
 	// Set up screen  
-	screen = SDL_SetVideoMode(640, 480, 32, SDL_SWSURFACE); // 宽640，高480，32位每像素，在软件内存区创建screen  
+	screen = SDL_SetVideoMode(1000, 1000, 32, SDL_SWSURFACE); // 宽640，高480，32位每像素，在软件内存区创建screen  
 	doSomthing(screen);
 	
 	return 0;

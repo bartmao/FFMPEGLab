@@ -42,7 +42,7 @@ namespace WindowsFormsApplication1
             int style = GetWindowLong(m_SdlWindowHandle, GWL_STYLE);
             SetWindowLong(m_SdlWindowHandle, GWL_STYLE, (style & ~WS_CAPTION));
             // Make the SDL Window the child of our Panel
-            SetParent(m_SdlWindowHandle, new IntPtr(0x1200E8));
+            SetParent(m_SdlWindowHandle, panel1.Handle);
             ShowWindow(m_SdlWindowHandle, ShowWindowCommand.SW_SHOWNORMAL);
             this.Invalidate();
         }
@@ -269,6 +269,11 @@ namespace WindowsFormsApplication1
         private void button4_Click(object sender, EventArgs e)
         {
             FastForward(false);
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            panel1.Invalidate();
         }
     }
 }
